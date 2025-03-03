@@ -519,7 +519,7 @@
             platforms = [];
 
             cameraY = 0;
-            x = gameContainer.offsetWidth / 2 - 15;
+            x = gameContainer.offsetWidth / 2 - 20; // Учитываем ширину персонажа
             y = 15;
             vy = 0;
             heightScore = 0;
@@ -764,10 +764,10 @@
             }
             if (isGameOver || jumpCount >= 2) return;
             jumpSound.currentTime = 0;
-            jumpSound.play().catch(error => console.log('Jump sound failed:', error));
-            vy = currentSettings.jumpStrength;
-            jumpCount++;
-            character.style.transform = 'scale(1.2)';
+            jumpSound.play().catch(error => console.log('Ошибка звука:', error));
+            vy = currentSettings.jumpStrength; // Сила прыжка
+            jumpCount++; // Увеличиваем счетчик прыжков
+            character.style.transform = 'scale(1.2)'; // Анимация прыжка
             setTimeout(() => character.style.transform = 'scale(1)', 200);
         }
 
@@ -798,6 +798,7 @@
             if (isGameOver) return;
             updateMovingPlatforms();
 
+            // Обновление движения
             if (keys.left) {
                 x -= currentSettings.moveSpeed;
                 character.classList.add('walking', 'facing-left');
@@ -808,13 +809,9 @@
             } else {
                 character.classList.remove('walking');
             }
-            x = Math.max(0, Math.min(x, gameContainer.offsetWidth - 40)); // Ограничение по ширине персонажа
+            x = Math.max(0, Math.min(x, gameContainer.offsetWidth - 40));
 
-            if (keys.jump && !isFlying) {
-                handleJump();
-                keys.jump = false; // Сброс прыжка после действия
-            }
-
+            // Физика прыжка
             if (isFlying) {
                 vy = currentSettings.jumpStrength * 0.8;
             } else {
@@ -823,6 +820,10 @@
             y += vy;
 
             const onPlatform = checkCollisions();
+            if (onPlatform) {
+                jumpCount = 0; // Сбрасываем прыжки при приземлении
+            }
+
             updateCamera();
             generateNewPlatforms();
 
@@ -851,48 +852,49 @@
             animationFrameId = requestAnimationFrame(gameLoop);
         }
 
-        // Управление через тачскрин
+        // Переменные для управления тачскрином
         let touchStartX = 0;
         let touchStartY = 0;
         let touchEndX = 0;
         let touchEndY = 0;
 
+        // Обработчик начала касания
         gameContainer.addEventListener('touchstart', (e) => {
             if (isGameOver) return;
             touchStartX = e.touches[0].clientX;
             touchStartY = e.touches[0].clientY;
+
+            const screenWidth = gameContainer.offsetWidth;
+            if (touchStartX > screenWidth / 2 && jumpCount < 2 && !isFlying) {
+                handleJump();
+            }
         });
 
+        // Обработчик движения пальца
         gameContainer.addEventListener('touchmove', (e) => {
             if (isGameOver) return;
             touchEndX = e.touches[0].clientX;
             touchEndY = e.touches[0].clientY;
             const deltaX = touchEndX - touchStartX;
-            const deltaY = touchEndY - touchStartY;
 
-            // Определение направления свайпа
-            if (Math.abs(deltaX) > Math.abs(deltaY)) {
-                // Горизонтальный свайп
-                if (deltaX > 0) {
-                    keys.right = true;
-                    keys.left = false;
-                } else {
-                    keys.left = true;
-                    keys.right = false;
-                }
-            } else {
-                // Вертикальный свайп
-                if (deltaY < 0) {
-                    // Свайп вверх для прыжка
-                    keys.jump = true;
+            const screenWidth = gameContainer.offsetWidth;
+            if (touchStartX < screenWidth / 2) {
+                if (Math.abs(deltaX) > 20) {
+                    if (deltaX > 0) {
+                        keys.right = true;
+                        keys.left = false;
+                    } else {
+                        keys.left = true;
+                        keys.right = false;
+                    }
                 }
             }
         });
 
+        // Обработчик окончания касания
         gameContainer.addEventListener('touchend', () => {
             keys.left = false;
             keys.right = false;
-            keys.jump = false;
         });
 
         // Обработчики событий для клавиатуры (опционально для десктопа)
